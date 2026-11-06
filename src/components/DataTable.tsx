@@ -3,6 +3,7 @@ import {
   ArrowRight,
   ChevronLeft,
   ChevronRight,
+  Columns,
   Copy,
   ExternalLink,
   Eye,
@@ -16,6 +17,7 @@ import { detectCourier, getTrackingUrl } from '../utils/courierUtils';
 interface DataTableProps {
   records: AuditRecord[];
   onSelectRecord: (record: AuditRecord) => void;
+  onCompareRecord?: (record: AuditRecord) => void;
   currentPage: number;
   pageSize: number;
   onPageChange: (page: number) => void;
@@ -25,6 +27,7 @@ interface DataTableProps {
 export const DataTable: React.FC<DataTableProps> = ({
   records,
   onSelectRecord,
+  onCompareRecord,
   currentPage,
   pageSize,
   onPageChange,
@@ -73,6 +76,13 @@ export const DataTable: React.FC<DataTableProps> = ({
       return (
         <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-100 text-blue-800 border border-blue-200">
           Update
+        </span>
+      );
+    }
+    if (record.changeType === 'TIDAK_DITEMUKAN') {
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-amber-50 text-amber-800 border border-amber-200">
+          Tidak di Update
         </span>
       );
     }
@@ -174,6 +184,12 @@ export const DataTable: React.FC<DataTableProps> = ({
                           <span className="font-medium text-blue-700">{r.newStatus}</span>
                         </div>
                       )}
+
+                      {r.changeType === 'TIDAK_DITEMUKAN' && (
+                        <span className="text-[10px] text-amber-700/80 italic">
+                          (Tidak ada di file update)
+                        </span>
+                      )}
                     </div>
                   </td>
 
@@ -246,16 +262,36 @@ export const DataTable: React.FC<DataTableProps> = ({
 
                   {/* Action */}
                   <td className="py-3 px-4 text-right whitespace-nowrap">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onSelectRecord(r);
-                      }}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-md transition-colors"
-                    >
-                      <Eye className="w-3 h-3" />
-                      <span>Rincian</span>
-                    </button>
+                    <div className="flex items-center justify-end gap-1.5">
+                      {onCompareRecord && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onCompareRecord(r);
+                          }}
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded-md transition-colors ${
+                            r.changeType === 'BERUBAH'
+                              ? 'bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200 shadow-2xs'
+                              : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                          }`}
+                          title="Komparasi Detail Berdampingan (Side-by-Side)"
+                        >
+                          <Columns className="w-3 h-3 text-orange-600" />
+                          <span>Komparasi</span>
+                        </button>
+                      )}
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSelectRecord(r);
+                        }}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-md transition-colors"
+                      >
+                        <Eye className="w-3 h-3" />
+                        <span>Rincian</span>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               );

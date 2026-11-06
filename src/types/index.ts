@@ -25,13 +25,18 @@ export interface AuditRecord {
   totalPrice: string | number;
   allColumns: Record<string, any>;
   updatedAt: string;
+  rawOldRow?: Record<string, any>;
+  rawNewRow?: Record<string, any>;
 }
+
+export type MatchingKey = 'orderId' | 'trackingNumber';
 
 export interface ReconciliationSummary {
   totalProcessed: number;
   changedCount: number;
   sameCount: number;
   newOrdersCount: number;
+  notFoundCount: number;
   cancelledCount: number;
   completedCount: number;
   onDeliveryCount: number;
@@ -47,7 +52,7 @@ export interface UploadedFileData {
   detectedMapping: ColumnMapping;
 }
 
-export type ExportFormat = 'xlsx' | 'csv';
+export type ExportFormat = 'xlsx' | 'csv' | 'pdf';
 
 export interface CourierInfo {
   name: string;

@@ -314,6 +314,29 @@ export function generateSampleShopeeData(): {
       'Kota/Kabupaten': 'KOTA PALEMBANG',
       'Provinsi': 'SUMATERA SELATAN',
     },
+    // Order lama yang sudah tidak ada di file export update terbaru (Contoh kasus Tidak di Update)
+    {
+      'No. Pesanan': '2411018890139Q',
+      'Status Pesanan': 'Sedang Dikirim',
+      'Alasan Pembatalan': '',
+      'Status Pembatalan/ Pengembalian': '',
+      'No. Resi': 'SPXID0481809999Z',
+      'Opsi Pengiriman': 'SPX Standard',
+      'Antar ke counter/ pick up': 'Pick Up',
+      'Pesanan Harus Dikirimkan Sebelum': '2026-11-04 23:59',
+      'Waktu Pesanan Dibuat': '2026-11-02 09:10',
+      'Waktu Pembayaran Dilakukan': '2026-11-02 09:12',
+      'Metode Pembayaran': 'ShopeePay',
+      'Nama Produk': 'Dompet Kulit Pria Lipat Pendek Premium Original',
+      'Nama Variasi': 'Coklat Tua',
+      'Harga Setelah Diskon': 85000,
+      'Jumlah': 1,
+      'Total Pembayaran': 92000,
+      'Username (Pembeli)': 'rudy_gunawan',
+      'Nama Penerima': 'Rudy Gunawan',
+      'Kota/Kabupaten': 'KOTA MEDAN',
+      'Provinsi': 'SUMATERA UTARA',
+    },
   ];
 
   // New Data Raw: reflects updated export after fulfillment and dispatch!

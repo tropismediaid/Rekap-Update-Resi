@@ -1,6 +1,6 @@
 {
-  "summary": "Rencana implementasi lengkap untuk Aplikasi Rekap & Update Status Resi Pengiriman berbasis client-side dengan dukungan file Shopee dan multi-marketplace, mesin rekonsiliasi audit trail, filter interaktif, tautan lacak resi ekspedisi instan, dan ekspor Excel/CSV.",
-  "updatedAt": "2026-11-06T09:02:25.428719997Z",
+  "summary": "Rencana implementasi untuk menambahkan fitur pilihan fleksibel kunci pencocokan (No. Pesanan vs No. Resi) serta kontrol filter toggle untuk menyembunyikan atau menampilkan data lama yang tidak ditemukan di file update terbaru.",
+  "updatedAt": "2026-11-06T17:09:34.692800297Z",
   "requestFeedback": true,
   "userFacing": true
 }

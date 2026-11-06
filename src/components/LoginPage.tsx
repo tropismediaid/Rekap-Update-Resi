@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AlertCircle, Eye, EyeOff, KeyRound, Lock, LogIn, Package, User } from 'lucide-react';
+import { AlertCircle, Eye, EyeOff, Lock, LogIn, Package, User } from 'lucide-react';
 
 interface LoginPageProps {
   onLoginSuccess: (rememberMe: boolean) => void;
@@ -27,12 +27,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         setIsLoading(false);
       }
     }, 300);
-  };
-
-  const fillDefaultCredentials = () => {
-    setUsername('admin');
-    setPassword('admin354');
-    setErrorMessage(null);
   };
 
   return (
@@ -106,7 +100,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             </div>
 
             {/* Remember Me */}
-            <div className="flex items-center justify-between pt-1">
+            <div className="flex items-center pt-1">
               <label className="flex items-center gap-2 cursor-pointer select-none">
                 <input
                   type="checkbox"
@@ -116,16 +110,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 />
                 <span className="text-xs text-slate-600">Ingat sesi saya</span>
               </label>
-
-              <button
-                type="button"
-                onClick={fillDefaultCredentials}
-                className="text-xs text-orange-600 hover:text-orange-700 font-medium hover:underline flex items-center gap-1"
-                title="Isi otomatis username & password default"
-              >
-                <KeyRound className="w-3.5 h-3.5" />
-                <span>Isi Otomatis</span>
-              </button>
             </div>
 
             {/* Submit Button */}
@@ -144,13 +128,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
               )}
             </button>
           </form>
-
-          {/* Preset Info Callout */}
-          <div className="mt-6 pt-4 border-t border-slate-100 text-center">
-            <p className="text-[11px] text-slate-500">
-              Kredensial Default: <strong className="text-slate-700 font-mono">admin</strong> / Password: <strong className="text-slate-700 font-mono">admin354</strong>
-            </p>
-          </div>
         </div>
 
         {/* Footer info */}

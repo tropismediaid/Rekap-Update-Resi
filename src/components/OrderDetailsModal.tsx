@@ -3,6 +3,7 @@ import {
   ArrowRight,
   Check,
   Clock,
+  Columns,
   Copy,
   ExternalLink,
   FileText,
@@ -16,9 +17,14 @@ import { detectCourier, getTrackingUrl } from '../utils/courierUtils';
 interface OrderDetailsModalProps {
   record: AuditRecord | null;
   onClose: () => void;
+  onOpenComparison?: (record: AuditRecord) => void;
 }
 
-export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ record, onClose }) => {
+export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
+  record,
+  onClose,
+  onOpenComparison,
+}) => {
   if (!record) return null;
 
   const [colSearch, setColSearch] = useState('');
@@ -183,16 +189,31 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ record, on
         </div>
 
         {/* Modal Footer */}
-        <div className="px-6 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+        <div className="px-6 py-3 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3">
           <span className="text-[11px] text-slate-500">
             Seluruh data kolom tetap utuh saat di-export kembali ke Excel.
           </span>
-          <button
-            onClick={onClose}
-            className="px-4 py-1.5 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors"
-          >
-            Tutup
-          </button>
+          <div className="flex items-center gap-2">
+            {onOpenComparison && (
+              <button
+                onClick={() => {
+                  onOpenComparison(record);
+                  onClose();
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-orange-700 bg-orange-50 hover:bg-orange-100 border border-orange-200 rounded-lg transition-colors shadow-2xs"
+              >
+                <Columns className="w-3.5 h-3.5 text-orange-600" />
+                <span>Komparasi Berdampingan</span>
+              </button>
+            )}
+
+            <button
+              onClick={onClose}
+              className="px-4 py-1.5 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors"
+            >
+              Tutup
+            </button>
+          </div>
         </div>
       </div>
     </div>

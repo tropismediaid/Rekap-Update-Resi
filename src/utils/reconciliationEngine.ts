@@ -1,13 +1,14 @@
-import { AuditRecord, ColumnMapping, ReconciliationSummary, StatusChangeType } from '../types';
+import { AuditRecord, ColumnMapping, MatchingKey, ReconciliationSummary, StatusChangeType } from '../types';
 
 export interface ReconciliationOptions {
   includeNewOrders: boolean;
+  matchingKey?: MatchingKey;
   updateOldTrackingIfEmptyOnly?: boolean;
 }
 
-export function normalizeOrderId(id: any): string {
-  if (id === null || id === undefined) return '';
-  return String(id).trim();
+export function normalizeKey(val: any): string {
+  if (val === null || val === undefined) return '';
+  return String(val).trim().toLowerCase();
 }
 
 /**
@@ -18,7 +19,7 @@ export function reconcileOrders(
   oldMapping: ColumnMapping,
   newData: Record<string, any>[],
   newMapping: ColumnMapping,
-  options: ReconciliationOptions = { includeNewOrders: true }
+  options: ReconciliationOptions = { includeNewOrders: true, matchingKey: 'orderId' }
 ): {
   records: AuditRecord[];
   summary: ReconciliationSummary;
@@ -29,23 +30,28 @@ export function reconcileOrders(
     timeStyle: 'short',
   });
 
-  // 1. Index new data by Order ID for fast lookup
+  const matchingKey = options.matchingKey || 'orderId';
+  const oldKeyCol = matchingKey === 'trackingNumber' ? oldMapping.trackingNumberCol : oldMapping.orderIdCol;
+  const newKeyCol = matchingKey === 'trackingNumber' ? newMapping.trackingNumberCol : newMapping.orderIdCol;
+
+  // 1. Index new data by selected key for fast lookup
   const newMap = new Map<string, Record<string, any>>();
   for (const row of newData) {
-    const rawId = row[newMapping.orderIdCol];
-    const normalized = normalizeOrderId(rawId);
-    if (normalized) {
-      newMap.set(normalized.toLowerCase(), row);
+    const rawVal = row[newKeyCol];
+    const normalized = normalizeKey(rawVal);
+    if (normalized && normalized !== '-' && normalized !== '0') {
+      newMap.set(normalized, row);
     }
   }
 
-  // 2. Track processed Order IDs
-  const matchedNewOrderIds = new Set<string>();
+  // 2. Track processed keys
+  const matchedNewKeys = new Set<string>();
   const records: AuditRecord[] = [];
 
   let changedCount = 0;
   let sameCount = 0;
   let newOrdersCount = 0;
+  let notFoundCount = 0;
   let cancelledCount = 0;
   let completedCount = 0;
   let onDeliveryCount = 0;
@@ -54,8 +60,10 @@ export function reconcileOrders(
   // 3. Process Old Records
   for (const oldRow of oldData) {
     const rawId = oldRow[oldMapping.orderIdCol];
-    const normalized = normalizeOrderId(rawId);
-    const lookupKey = normalized.toLowerCase();
+    const normalizedOrderId = String(rawId || '').trim();
+
+    const rawMatchVal = oldRow[oldKeyCol];
+    const lookupKey = normalizeKey(rawMatchVal);
 
     const oldStatus = String(oldRow[oldMapping.orderStatusCol] || '').trim();
     const oldTracking = String(oldRow[oldMapping.trackingNumberCol] || '').trim();
@@ -64,8 +72,8 @@ export function reconcileOrders(
     const product = oldMapping.productNameCol ? String(oldRow[oldMapping.productNameCol] || '').trim() : '';
     const price = oldMapping.totalPriceCol ? oldRow[oldMapping.totalPriceCol] : '';
 
-    if (newMap.has(lookupKey)) {
-      matchedNewOrderIds.add(lookupKey);
+    if (lookupKey && lookupKey !== '-' && lookupKey !== '0' && newMap.has(lookupKey)) {
+      matchedNewKeys.add(lookupKey);
       const newRow = newMap.get(lookupKey)!;
 
       const newStatus = String(newRow[newMapping.orderStatusCol] || '').trim() || oldStatus;
@@ -122,7 +130,7 @@ export function reconcileOrders(
       };
 
       records.push({
-        orderId: normalized,
+        orderId: normalizedOrderId,
         changeType,
         oldStatus,
         newStatus,
@@ -136,11 +144,13 @@ export function reconcileOrders(
         totalPrice: price,
         allColumns: exportRow,
         updatedAt: nowStr,
+        rawOldRow: oldRow,
+        rawNewRow: newRow,
       });
     } else {
-      // Order ID in old data was NOT found in new update file
-      const changeType: StatusChangeType = 'TETAP';
-      sameCount++;
+      // Data in old file was NOT found in new update file
+      const changeType: StatusChangeType = 'TIDAK_DITEMUKAN';
+      notFoundCount++;
 
       const lowerStatus = oldStatus.toLowerCase();
       if (lowerStatus.includes('batal') || lowerStatus.includes('cancel')) cancelledCount++;
@@ -151,7 +161,7 @@ export function reconcileOrders(
       const exportRow: Record<string, any> = {
         '[Audit] Status Terkini': oldStatus,
         '[Audit] Status Sebelumnya': oldStatus || '-',
-        '[Audit] Jenis Perubahan': 'Tetap (Tidak Tercantum di File Update)',
+        '[Audit] Jenis Perubahan': 'Tidak Ada di File Update',
         '[Audit] No. Resi Terkini': oldTracking || '-',
         '[Audit] No. Resi Sebelumnya': oldTracking || '-',
         '[Audit] Waktu Pemutakhiran': nowStr,
@@ -159,7 +169,7 @@ export function reconcileOrders(
       };
 
       records.push({
-        orderId: normalized,
+        orderId: normalizedOrderId,
         changeType,
         oldStatus,
         newStatus: oldStatus,
@@ -173,6 +183,8 @@ export function reconcileOrders(
         totalPrice: price,
         allColumns: exportRow,
         updatedAt: nowStr,
+        rawOldRow: oldRow,
+        rawNewRow: undefined,
       });
     }
   }
@@ -181,10 +193,11 @@ export function reconcileOrders(
   if (options.includeNewOrders) {
     for (const newRow of newData) {
       const rawId = newRow[newMapping.orderIdCol];
-      const normalized = normalizeOrderId(rawId);
-      const lookupKey = normalized.toLowerCase();
+      const normalizedOrderId = String(rawId || '').trim();
+      const rawMatchVal = newRow[newKeyCol];
+      const lookupKey = normalizeKey(rawMatchVal);
 
-      if (!matchedNewOrderIds.has(lookupKey) && normalized) {
+      if (lookupKey && !matchedNewKeys.has(lookupKey)) {
         newOrdersCount++;
         const newStatus = String(newRow[newMapping.orderStatusCol] || '').trim();
         const newTracking = String(newRow[newMapping.trackingNumberCol] || '').trim();
@@ -210,7 +223,7 @@ export function reconcileOrders(
         };
 
         records.push({
-          orderId: normalized,
+          orderId: normalizedOrderId || (matchingKey === 'trackingNumber' ? `RESI-${newTracking}` : 'PESANAN-BARU'),
           changeType: 'BARU',
           oldStatus: '(Pesanan Baru)',
           newStatus,
@@ -224,6 +237,8 @@ export function reconcileOrders(
           totalPrice: price,
           allColumns: exportRow,
           updatedAt: nowStr,
+          rawOldRow: undefined,
+          rawNewRow: newRow,
         });
       }
     }
@@ -235,6 +250,7 @@ export function reconcileOrders(
     changedCount,
     sameCount,
     newOrdersCount,
+    notFoundCount,
     cancelledCount,
     completedCount,
     onDeliveryCount,

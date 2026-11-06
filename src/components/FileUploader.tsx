@@ -8,7 +8,7 @@ import {
   UploadCloud,
   X,
 } from 'lucide-react';
-import { ColumnMapping, UploadedFileData } from '../types';
+import { ColumnMapping, MatchingKey, UploadedFileData } from '../types';
 import { ColumnMappingModal } from './ColumnMappingModal';
 
 interface FileUploaderProps {
@@ -20,6 +20,8 @@ interface FileUploaderProps {
   onClearNewFile: () => void;
   onUpdateOldMapping: (m: ColumnMapping) => void;
   onUpdateNewMapping: (m: ColumnMapping) => void;
+  matchingKey: MatchingKey;
+  onMatchingKeyChange: (key: MatchingKey) => void;
   includeNewOrders: boolean;
   onToggleIncludeNewOrders: (val: boolean) => void;
   onProcess: () => void;
@@ -36,6 +38,8 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
   onClearNewFile,
   onUpdateOldMapping,
   onUpdateNewMapping,
+  matchingKey,
+  onMatchingKeyChange,
   includeNewOrders,
   onToggleIncludeNewOrders,
   onProcess,
@@ -313,37 +317,82 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
       </div>
 
       {/* Control Strip & Execute */}
-      <div className="pt-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <label className="flex items-center gap-2 cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={includeNewOrders}
-            onChange={(e) => onToggleIncludeNewOrders(e.target.checked)}
-            className="w-4 h-4 rounded text-orange-600 focus:ring-orange-500 border-slate-300"
-          />
-          <span className="text-xs text-slate-700">
-            Sertakan pesanan baru yang hanya ada di file update terbaru
-          </span>
-        </label>
+      <div className="pt-4 border-t border-slate-200 space-y-4">
+        {/* Matching Key Selector */}
+        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-900">
+                Kunci Pencocokan (Matching Key):
+              </span>
+              <span className="text-[10px] font-semibold text-orange-700 bg-orange-100/70 px-2 py-0.5 rounded-full">
+                Fleksibel
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-500">
+              Pilih identitas untuk mencocokkan data lama dengan update baru. Gunakan <span className="font-semibold text-slate-700">No. Resi</span> jika file update hanya berasal dari kurir/ekspedisi tanpa No. Pesanan.
+            </p>
+          </div>
 
-        <button
-          onClick={onProcess}
-          disabled={!canProcess || isProcessing}
-          className={`w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 text-xs font-semibold rounded-lg shadow-sm transition-all whitespace-nowrap ${
-            canProcess && !isProcessing
-              ? 'text-white bg-orange-600 hover:bg-orange-700 active:scale-98'
-              : 'text-slate-400 bg-slate-100 cursor-not-allowed border border-slate-200'
-          }`}
-        >
-          {isProcessing ? (
-            <span>Memproses Data...</span>
-          ) : (
-            <>
-              <span>Mulai Rekonsiliasi & Update Status</span>
-              <ArrowRight className="w-4 h-4" />
-            </>
-          )}
-        </button>
+          <div className="flex items-center gap-1.5 p-1 bg-white border border-slate-200 rounded-lg shrink-0">
+            <button
+              type="button"
+              onClick={() => onMatchingKeyChange('orderId')}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                matchingKey === 'orderId'
+                  ? 'bg-orange-600 text-white shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              }`}
+            >
+              No. Pesanan (Order ID)
+            </button>
+            <button
+              type="button"
+              onClick={() => onMatchingKeyChange('trackingNumber')}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                matchingKey === 'trackingNumber'
+                  ? 'bg-orange-600 text-white shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              }`}
+            >
+              No. Resi (AWB)
+            </button>
+          </div>
+        </div>
+
+        {/* Options & Execute Action */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={includeNewOrders}
+              onChange={(e) => onToggleIncludeNewOrders(e.target.checked)}
+              className="w-4 h-4 rounded text-orange-600 focus:ring-orange-500 border-slate-300"
+            />
+            <span className="text-xs text-slate-700">
+              Sertakan pesanan baru yang hanya ada di file update terbaru
+            </span>
+          </label>
+
+          <button
+            onClick={onProcess}
+            disabled={!canProcess || isProcessing}
+            className={`w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 text-xs font-semibold rounded-lg shadow-sm transition-all whitespace-nowrap ${
+              canProcess && !isProcessing
+                ? 'text-white bg-orange-600 hover:bg-orange-700 active:scale-98'
+                : 'text-slate-400 bg-slate-100 cursor-not-allowed border border-slate-200'
+            }`}
+          >
+            {isProcessing ? (
+              <span>Memproses Data...</span>
+            ) : (
+              <>
+                <span>Mulai Rekonsiliasi & Update Status</span>
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Modals for mapping */}

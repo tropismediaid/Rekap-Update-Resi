@@ -4,6 +4,7 @@ import {
   ArrowUpRight,
   CheckCircle,
   Clock,
+  HelpCircle,
   Layers,
   Sparkles,
   Truck,
@@ -64,6 +65,16 @@ export const StatsCards: React.FC<StatsCardsProps> = ({
       tagColor: 'text-emerald-700',
     },
     {
+      id: 'TIDAK_DITEMUKAN',
+      title: 'Tidak di Update',
+      count: summary.notFoundCount || 0,
+      subtitle: 'Hanya ada di file lama',
+      icon: HelpCircle,
+      color: 'text-amber-600',
+      activeBorder: 'border-amber-600 ring-1 ring-amber-600',
+      tagColor: 'text-amber-700',
+    },
+    {
       id: 'DIBATALKAN',
       title: 'Dibatalkan / Retur',
       count: summary.cancelledCount,
@@ -86,7 +97,7 @@ export const StatsCards: React.FC<StatsCardsProps> = ({
         </span>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {cards.map((card) => {
           const Icon = card.icon;
           const isActive = activeFilter === card.id;

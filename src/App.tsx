@@ -10,11 +10,12 @@ import {
   RefreshCw,
   Sparkles,
 } from 'lucide-react';
-import { AuditRecord, ColumnMapping, ExportFormat, ReconciliationSummary, UploadedFileData } from './types';
+import { AuditRecord, ColumnMapping, ExportFormat, MatchingKey, ReconciliationSummary, UploadedFileData } from './types';
 import { parseSpreadsheetFile } from './utils/fileParser';
 import { reconcileOrders } from './utils/reconciliationEngine';
 import { generateSampleShopeeData } from './utils/sampleDataGenerator';
 import { exportDataset } from './utils/excelExporter';
+import { exportPdfReport } from './utils/pdfExporter';
 
 import { Header } from './components/Header';
 import { FileUploader } from './components/FileUploader';
@@ -22,6 +23,7 @@ import { StatsCards } from './components/StatsCards';
 import { FilterBar } from './components/FilterBar';
 import { DataTable } from './components/DataTable';
 import { OrderDetailsModal } from './components/OrderDetailsModal';
+import { ComparisonModal } from './components/ComparisonModal';
 import { LoginPage } from './components/LoginPage';
 
 export default function App() {
@@ -38,6 +40,8 @@ export default function App() {
   const [oldFile, setOldFile] = useState<UploadedFileData | null>(null);
   const [newFile, setNewFile] = useState<UploadedFileData | null>(null);
   const [includeNewOrders, setIncludeNewOrders] = useState(true);
+  const [matchingKey, setMatchingKey] = useState<MatchingKey>('orderId');
+  const [onlyMatched, setOnlyMatched] = useState<boolean>(false);
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -56,6 +60,7 @@ export default function App() {
 
   // Modal inspection
   const [selectedRecord, setSelectedRecord] = useState<AuditRecord | null>(null);
+  const [comparisonRecord, setComparisonRecord] = useState<AuditRecord | null>(null);
 
   // Toast feedback
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -136,7 +141,7 @@ export default function App() {
         oldFile.detectedMapping,
         newFile.data,
         newFile.detectedMapping,
-        { includeNewOrders }
+        { includeNewOrders, matchingKey }
       );
 
       setRecords(result.records);
@@ -144,8 +149,9 @@ export default function App() {
       setExportRows(result.exportRows);
       setCurrentPage(1);
 
+      const keyLabel = matchingKey === 'orderId' ? 'No. Pesanan' : 'No. Resi';
       showToast(
-        `Rekonsiliasi selesai! ${result.summary.changedCount} status berubah, ${result.summary.newOrdersCount} pesanan baru.`
+        `Rekonsiliasi via ${keyLabel} selesai! ${result.summary.changedCount} berubah, ${result.summary.newOrdersCount} baru, ${result.summary.notFoundCount || 0} tidak di-update.`
       );
     } catch (err: any) {
       setErrorMsg(err.message || 'Terjadi kesalahan saat memproses data.');
@@ -166,7 +172,7 @@ export default function App() {
       demo.oldFile.detectedMapping,
       demo.newFile.data,
       demo.newFile.detectedMapping,
-      { includeNewOrders: true }
+      { includeNewOrders: true, matchingKey }
     );
 
     setRecords(result.records);
@@ -192,6 +198,26 @@ export default function App() {
 
   // Export handler
   const handleExport = (format: ExportFormat) => {
+    if (format === 'pdf') {
+      const recordsToExport = filteredRecords.length > 0 ? filteredRecords : records;
+      if (!recordsToExport || recordsToExport.length === 0 || !summary) {
+        showToast('Belum ada data hasil rekonsiliasi untuk diekspor.');
+        return;
+      }
+
+      try {
+        exportPdfReport(recordsToExport, summary, {
+          searchTerm,
+          statusFilter,
+          courierFilter,
+        });
+        showToast('Laporan audit PDF berhasil diunduh!');
+      } catch (err: any) {
+        setErrorMsg(err.message || 'Gagal membuat dokumen PDF.');
+      }
+      return;
+    }
+
     if (!exportRows || exportRows.length === 0) {
       showToast('Belum ada data hasil rekonsiliasi untuk diekspor.');
       return;
@@ -202,6 +228,33 @@ export default function App() {
       showToast(`File hasil rekonsiliasi (${format.toUpperCase()}) berhasil diunduh!`);
     } catch (err: any) {
       setErrorMsg(err.message || 'Gagal mengekspor file.');
+    }
+  };
+
+  // Handler for barcode scanner results from Web API camera
+  const handleScanResi = (scannedText: string) => {
+    const clean = scannedText.trim();
+    if (!clean) return;
+
+    setSearchTerm(clean);
+    setStatusFilter('ALL');
+    setCourierFilter('ALL');
+    setCurrentPage(1);
+
+    if (records) {
+      const match = records.find(
+        (r) =>
+          r.newTrackingNumber.toLowerCase().includes(clean.toLowerCase()) ||
+          r.orderId.toLowerCase().includes(clean.toLowerCase())
+      );
+
+      if (match) {
+        showToast(
+          `Resi ${match.newTrackingNumber || match.orderId} ditemukan (Status: ${match.newStatus})!`
+        );
+      } else {
+        showToast(`Resi "${clean}" terdeteksi, tidak ada di data ini.`);
+      }
     }
   };
 
@@ -227,11 +280,18 @@ export default function App() {
         if (r.changeType !== 'TETAP') return false;
       } else if (statusFilter === 'BARU') {
         if (r.changeType !== 'BARU') return false;
+      } else if (statusFilter === 'TIDAK_DITEMUKAN') {
+        if (r.changeType !== 'TIDAK_DITEMUKAN') return false;
       } else if (statusFilter === 'DIBATALKAN') {
         const lower = r.newStatus.toLowerCase();
         if (!lower.includes('batal') && !lower.includes('cancel') && !lower.includes('retur')) {
           return false;
         }
+      }
+
+      // 1b. Toggle Filter: Hanya Data Cocok / Terupdate (Sembunyikan data lama yang tidak ditemukan di file update)
+      if (onlyMatched && r.changeType === 'TIDAK_DITEMUKAN') {
+        return false;
       }
 
       // 2. Courier Filter
@@ -256,7 +316,13 @@ export default function App() {
 
       return true;
     });
-  }, [records, statusFilter, courierFilter, searchTerm]);
+  }, [records, statusFilter, courierFilter, searchTerm, onlyMatched]);
+
+  // Changed records list for side-by-side comparison modal navigation
+  const allChangedRecords = useMemo(() => {
+    if (!records) return [];
+    return records.filter((r) => r.changeType === 'BERUBAH' || r.changeType === 'BARU');
+  }, [records]);
 
   // If not logged in, display the Login Page
   if (!isAuthenticated) {
@@ -317,6 +383,8 @@ export default function App() {
           onClearNewFile={() => setNewFile(null)}
           onUpdateOldMapping={handleUpdateOldMapping}
           onUpdateNewMapping={handleUpdateNewMapping}
+          matchingKey={matchingKey}
+          onMatchingKeyChange={setMatchingKey}
           includeNewOrders={includeNewOrders}
           onToggleIncludeNewOrders={setIncludeNewOrders}
           onProcess={handleProcess}
@@ -358,12 +426,16 @@ export default function App() {
               totalFilteredCount={filteredRecords.length}
               totalCount={records.length}
               onExport={handleExport}
+              onScanResi={handleScanResi}
+              onlyMatched={onlyMatched}
+              onToggleOnlyMatched={() => setOnlyMatched((prev) => !prev)}
             />
 
             {/* Data Table */}
             <DataTable
               records={filteredRecords}
               onSelectRecord={setSelectedRecord}
+              onCompareRecord={(r) => setComparisonRecord(r)}
               currentPage={currentPage}
               pageSize={pageSize}
               onPageChange={setCurrentPage}
@@ -380,6 +452,18 @@ export default function App() {
       <OrderDetailsModal
         record={selectedRecord}
         onClose={() => setSelectedRecord(null)}
+        onOpenComparison={(r) => setComparisonRecord(r)}
+      />
+
+      {/* Side-by-Side Comparison Modal */}
+      <ComparisonModal
+        isOpen={comparisonRecord !== null}
+        onClose={() => setComparisonRecord(null)}
+        record={comparisonRecord}
+        allChangedRecords={allChangedRecords}
+        onSelectRecord={(r) => setComparisonRecord(r)}
+        oldFileName={oldFile?.fileName}
+        newFileName={newFile?.fileName}
       />
 
       {/* Toast Notification */}
