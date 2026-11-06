@@ -1,13 +1,21 @@
 import React from 'react';
-import { Package, RefreshCw, Sparkles, Trash2 } from 'lucide-react';
+import { LogOut, Package, RefreshCw, Sparkles, Trash2, User } from 'lucide-react';
 
 interface HeaderProps {
   onLoadDemo: () => void;
   onReset: () => void;
   hasData: boolean;
+  currentUser?: string;
+  onLogout: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onLoadDemo, onReset, hasData }) => {
+export const Header: React.FC<HeaderProps> = ({
+  onLoadDemo,
+  onReset,
+  hasData,
+  currentUser = 'admin',
+  onLogout,
+}) => {
   return (
     <header className="bg-white border-b border-slate-200 sticky top-0 z-30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-8">
@@ -56,6 +64,25 @@ export const Header: React.FC<HeaderProps> = ({ onLoadDemo, onReset, hasData }) 
             <Sparkles className="w-3.5 h-3.5 text-orange-600" />
             <span>Muat Data Sampel (Demo)</span>
           </button>
+
+          <div className="h-4 w-px bg-slate-200 mx-1 hidden sm:block" />
+
+          {/* User info & Logout */}
+          <div className="flex items-center gap-1.5 pl-1">
+            <span className="hidden lg:flex items-center gap-1 text-xs text-slate-600 font-medium bg-slate-100 px-2 py-1 rounded-md">
+              <User className="w-3 h-3 text-slate-500" />
+              <span>{currentUser}</span>
+            </span>
+
+            <button
+              onClick={onLogout}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:text-red-700 hover:bg-red-50 rounded-lg border border-slate-200 transition-colors"
+              title="Keluar dari akun admin"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Keluar</span>
+            </button>
+          </div>
         </div>
       </div>
     </header>

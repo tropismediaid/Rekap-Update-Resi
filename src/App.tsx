@@ -22,8 +22,19 @@ import { StatsCards } from './components/StatsCards';
 import { FilterBar } from './components/FilterBar';
 import { DataTable } from './components/DataTable';
 import { OrderDetailsModal } from './components/OrderDetailsModal';
+import { LoginPage } from './components/LoginPage';
 
 export default function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    try {
+      return (
+        localStorage.getItem('auth_admin') === 'true' ||
+        sessionStorage.getItem('auth_admin') === 'true'
+      );
+    } catch {
+      return false;
+    }
+  });
   const [oldFile, setOldFile] = useState<UploadedFileData | null>(null);
   const [newFile, setNewFile] = useState<UploadedFileData | null>(null);
   const [includeNewOrders, setIncludeNewOrders] = useState(true);
@@ -52,6 +63,27 @@ export default function App() {
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  const handleLoginSuccess = (rememberMe: boolean) => {
+    setIsAuthenticated(true);
+    try {
+      if (rememberMe) {
+        localStorage.setItem('auth_admin', 'true');
+      } else {
+        sessionStorage.setItem('auth_admin', 'true');
+      }
+    } catch {}
+    showToast('Berhasil masuk sebagai admin.');
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    try {
+      localStorage.removeItem('auth_admin');
+      sessionStorage.removeItem('auth_admin');
+    } catch {}
+    showToast('Sesi telah diakhiri. Silakan login kembali.');
   };
 
   // Upload handlers
@@ -226,6 +258,11 @@ export default function App() {
     });
   }, [records, statusFilter, courierFilter, searchTerm]);
 
+  // If not logged in, display the Login Page
+  if (!isAuthenticated) {
+    return <LoginPage onLoginSuccess={handleLoginSuccess} />;
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* Top Header */}
@@ -233,6 +270,8 @@ export default function App() {
         onLoadDemo={handleLoadDemo}
         onReset={handleReset}
         hasData={records !== null || oldFile !== null || newFile !== null}
+        currentUser="admin"
+        onLogout={handleLogout}
       />
 
       {/* Main Content Area */}
