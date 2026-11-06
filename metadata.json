@@ -1,0 +1,6 @@
+{
+  "name": "Rekap & Update Status Resi Pengiriman",
+  "description": "Aplikasi web interaktif client-side untuk memproses, mencocokkan, dan memperbarui status pesanan serta nomor resi pengiriman secara otomatis dari file export e-commerce.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
