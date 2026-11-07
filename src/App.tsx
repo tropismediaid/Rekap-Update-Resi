@@ -25,8 +25,18 @@ import { DataTable } from './components/DataTable';
 import { OrderDetailsModal } from './components/OrderDetailsModal';
 import { ComparisonModal } from './components/ComparisonModal';
 import { LoginPage } from './components/LoginPage';
+import { MobileScannerView } from './components/MobileScannerView';
 
 export default function App() {
+  const [mobileScanSession, setMobileScanSession] = useState<string | null>(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('mobileScan');
+    } catch {
+      return null;
+    }
+  });
+
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     try {
       return (
@@ -323,6 +333,21 @@ export default function App() {
     if (!records) return [];
     return records.filter((r) => r.changeType === 'BERUBAH' || r.changeType === 'BARU');
   }, [records]);
+
+  // If opened on smartphone as a remote barcode scanner companion
+  if (mobileScanSession) {
+    return (
+      <MobileScannerView
+        sessionId={mobileScanSession}
+        onExit={() => {
+          setMobileScanSession(null);
+          try {
+            window.history.replaceState({}, '', window.location.pathname);
+          } catch {}
+        }}
+      />
+    );
+  }
 
   // If not logged in, display the Login Page
   if (!isAuthenticated) {
